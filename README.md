@@ -39,3 +39,5 @@ As already stated, I've been hacking at this so far, and not using detailed spec
 As expected, Moodle uses an xml format to create course backups. The xml files and related documents are compressed in a .zip format archive. One uses any unzip-compatible program to retrieve the contents. 
 
 http://docs.moodle.org/dev/Backup_2.0_for_developers
+
+Information page: https://sites.google.com/a/colgate.edu/dwheeler/Home/extract-mbz
