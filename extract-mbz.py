@@ -107,13 +107,16 @@ if not os.path.exists(source + 'course/course.xml'):
     print "\nERROR: " + source + " does not appear to contain unzipped mbz contents (couldn't locate course.xml)\n"
     sys.exit()
 
+if not os.path.exists(source + 'course/moodle_backup.xml'):
+    print "\nERROR: " + source + " does not appear to contain unzipped mbz contents (couldn't locate moodle_backup.xml)\n"
+    sys.exit()
+
 destinationRoot      = './'+sourceDir+'-Extracted/'
 createOutputDirectories(destinationRoot)
 
 pattern     = re.compile('^\s*(.+\.(?:pdf|png|zip|rtf|sav|mp3|mht|por|xlsx?|docx?|pptx?))\s*$', flags=re.IGNORECASE)
 
 # Get Course Info
-
 courseTree = etree.parse(source + 'course/course.xml')
 shortname = courseTree.getroot().find('shortname').text
 fullname = courseTree.getroot().find('fullname').text
@@ -121,6 +124,12 @@ crn = courseTree.getroot().find('idnumber').text
 format = courseTree.getroot().find('format').text
 topics = courseTree.getroot().find('numsections').text
 #print shortname + pipe + "fullname"
+
+
+# Get Moodle backup file info
+backupTree = etree.parse(source + 'moodle_backup.xml')
+backupTreeRoot = backupTree.getroot()
+activities = backupTreeRoot.find("information").find("contents").find("activities").findall("activity")
 
 ts = time.time()
 timeStamp = datetime.datetime.fromtimestamp(ts).strftime('%Y%m%d-%H%M')
