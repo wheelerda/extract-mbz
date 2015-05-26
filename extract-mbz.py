@@ -129,7 +129,7 @@ topics = courseTree.getroot().find('numsections').text
 # Get Moodle backup file info
 backupTree = etree.parse(os.path.join(source, 'moodle_backup.xml'))
 backupTreeRoot = backupTree.getroot()
-activities = backupTreeRoot.find("information").find("contents").find("activities").findall("activity")
+activities = backupTreeRoot.find("information").find("contents").find("activities")
 
 ts = time.time()
 timeStamp = datetime.datetime.fromtimestamp(ts).strftime('%Y%m%d-%H%M')
@@ -138,6 +138,9 @@ timeStampSeconds = datetime.datetime.fromtimestamp(ts).strftime('%Y%m%d-%H%M-%S'
 print "Extracting backup of "+shortname+ " @ " + timeStamp + " to " + destinationRoot +"\n"
 
 initializeLogfile("extract.log.txt")
+
+
+
 
 ##########################
 # Process each section
@@ -159,18 +162,28 @@ else:
 
 print "===\nProcessing course sections..."
 
-urlfiles = locate('url*',source + 'activities/')
 itemCount = 0
 
 for s in backupTreeRoot.findall("./information/contents/sections")[0].findall("section"):
 	
 	itemCount += 1	
 	section_title = s.find("title").text
+
+	HTMLOutput = "<h2>%s</h2><ul>" % section_title 
+
+	# Open section file
+	section_file_root = etree.parse(os.path.join(source, s.find("directory").text, "section.xml"))
+	section_sequence = section_file_root.find("sequence").text.split(',')
+	
+	for item in section_sequence:
+		# Look for this item in the Moodle backup file
+		item_xpath = ".//*[moduleid='%s']" % item
+		item_title = activities.find(item_xpath).find("title").text
+		item_path = activities.find(item_xpath).find("directory").text
+		HTMLOutput += "<li>%s</li>" % item_title
 	
 	logOutput = section_title + nl 
-        
-	HTMLOutput = "<h2>%s</h2>" % section_title
-	#'<li> <a href="'+addressText+'">'+titleText+'</a>'+introText+'</li>' + nl
+	HTMLOutput += "</ul>"
 
 	urlfile.write(HTMLOutput)
 	logfile.write(logOutput)
