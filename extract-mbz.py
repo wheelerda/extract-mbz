@@ -101,23 +101,23 @@ if sys.argv[1] == '?':
 
 sourceDir = str(sys.argv[1])
 
-source = './'+sourceDir+'/'
+source = sourceDir #'./'+sourceDir+'/'
 
-if not os.path.exists(source + 'course/course.xml'):
+if not os.path.exists(os.path.join(source, 'course', 'course.xml')):
     print "\nERROR: " + source + " does not appear to contain unzipped mbz contents (couldn't locate course.xml)\n"
     sys.exit()
 
-if not os.path.exists(source + 'course/moodle_backup.xml'):
+if not os.path.exists(os.path.join(source,  'moodle_backup.xml')):
     print "\nERROR: " + source + " does not appear to contain unzipped mbz contents (couldn't locate moodle_backup.xml)\n"
     sys.exit()
 
-destinationRoot      = './'+sourceDir+'-Extracted/'
+destinationRoot      = os.path.join(sourceDir, '-Extracted/')
 createOutputDirectories(destinationRoot)
 
 pattern     = re.compile('^\s*(.+\.(?:pdf|png|zip|rtf|sav|mp3|mht|por|xlsx?|docx?|pptx?))\s*$', flags=re.IGNORECASE)
 
 # Get Course Info
-courseTree = etree.parse(source + 'course/course.xml')
+courseTree = etree.parse(os.path.join(source, 'course', 'course.xml'))
 shortname = courseTree.getroot().find('shortname').text
 fullname = courseTree.getroot().find('fullname').text
 crn = courseTree.getroot().find('idnumber').text
@@ -127,7 +127,7 @@ topics = courseTree.getroot().find('numsections').text
 
 
 # Get Moodle backup file info
-backupTree = etree.parse(source + 'moodle_backup.xml')
+backupTree = etree.parse(os.path.join(source, 'moodle_backup.xml'))
 backupTreeRoot = backupTree.getroot()
 activities = backupTreeRoot.find("information").find("contents").find("activities").findall("activity")
 
@@ -139,10 +139,57 @@ print "Extracting backup of "+shortname+ " @ " + timeStamp + " to " + destinatio
 
 initializeLogfile("extract.log.txt")
 
+##########################
+# Process each section
+webFilename = "coursesections.html"
+webFileSpec = os.path.join(destinationRoot, webFilename)
+
+
+urlfile = open(webFileSpec,"w")
+if urlfile.mode == 'w':
+    urlfile.write("<html><title>Moodle Backup Extract</title><body><blockquote>")
+    urlfile.write("<h3>Moodle Backup Extract..."+timeStamp+"</h1>")
+    urlfile.write("<h2>"+shortname+" ("+fullname+")</h2>")
+    urlfile.write("<h1>Course Sections</h3>")
+    urlfile.write("<ul>")
+    logfile.write("\n============\nCourse Sections\n=============\n")
+    print ("Course Sections: {0}".format(webFileSpec))
+else:
+    print ("Error: unable to open {0} for writing".format(webFileSpec))
+
+print "===\nProcessing course sections..."
+
+urlfiles = locate('url*',source + 'activities/')
+itemCount = 0
+
+for s in backupTreeRoot.findall("./information/contents/sections")[0].findall("section"):
+	
+	itemCount += 1	
+	section_title = s.find("title").text
+	
+	logOutput = section_title + nl 
+        
+	HTMLOutput = "<h2>%s</h2>" % section_title
+	#'<li> <a href="'+addressText+'">'+titleText+'</a>'+introText+'</li>' + nl
+
+	urlfile.write(HTMLOutput)
+	logfile.write(logOutput)
+
+if itemCount == 0:
+    urlfile.write("<p>No sections found!</p>")
+    print("No sections found!")
+
+logfile.write ("Extracted sections = {0}".format(itemCount))
+
+urlfile.close()
+
+
+
+
 # # #########################
 # Process Course Files
 
-fileTree = etree.parse(source + 'files.xml')
+fileTree = etree.parse(os.path.join(source,'files.xml'))
 root = fileTree.getroot()
 
 #print "Root: ", root
@@ -172,26 +219,26 @@ for rsrc in root:
         logfile.write("|FILES\n")
         
         if fcontext == "user":
-            destination = destinationRoot + "user/"
+            destination = os.path.join(destinationRoot, "user")
         elif fcontext == "mod_resource":
-            destination = destinationRoot + "resource/"
+            destination = os.path.join(destinationRoot, "resource")
         elif fcontext == "legacy":
-            destination = destinationRoot + "legacy/"
+            destination = os.path.join(destinationRoot, "legacy")
         elif (fcontext == "mod_assignment") or (fcontext == "assignsubmission_file"):
-            destination = destinationRoot + "assignment/"
+            destination = os.path.join(destinationRoot, "assignment")
         elif fcontext == "mod_forum":
-            destination = destinationRoot + "forum/"
+            destination = os.path.join(destinationRoot, "forum")
         else:
             destination = destinationRoot
                       
         for x in files:
             # print "Copying: ", x
-            if os.path.exists(destination + fname):
+            if os.path.exists(os.path.join(destination,fname)):
                 print " $$$$ File conflict!!!!! " + destination + fname 
                 conflicted += 1
-                shutil.copyfile(x, destination + fname + "-" + str(conflicted))
+                shutil.copyfile(x, os.path.join(destination, fname + "-" + str(conflicted)))
             else:
-                shutil.copyfile(x, destination + fname)
+                shutil.copyfile(x, os.path.join(destination, fname))
         else: 
             logfile.write("NO FILES|\n")
     
@@ -200,12 +247,14 @@ for rsrc in root:
 print ("Extracted files = {0}".format(itemCount))
 logfile.write ("\nExtracted files = {0}\n".format(itemCount))
 
-print "\nProcessing Course Links (URLs)...";  # status
+
 
 # # #########################
 # Process Course Links (URLs)
+
+print "\nProcessing Course Links (URLs)...";  # status
 webFilename = "courselinks.html"
-webFileSpec = destinationRoot+webFilename
+webFileSpec = os.path.join(destinationRoot, webFilename)
 
 urlfile = open(webFileSpec,"w")
 if urlfile.mode == 'w':
@@ -221,7 +270,7 @@ else:
 
 print "===\nProcessing course urls..."
 
-urlfiles = locate('url*',source + 'activities/')
+urlfiles = locate('url*', os.path.join(source, 'activities'))
 itemCount = 0
 
 for uf in urlfiles:
@@ -270,5 +319,5 @@ if sys.platform.startswith('linux') or sys.platform.startswith('darwin'):
 
 # clean up (remove) subdirectories not used
 for subdir in ("forum", "legacy", "assignment", "user", "resource"):
-    if not os.listdir(destinationRoot + subdir):
-        os.rmdir(destinationRoot + subdir)
+    if not os.listdir(os.path.join(destinationRoot, subdir)):
+        os.rmdir(os.path.join(destinationRoot, subdir))
