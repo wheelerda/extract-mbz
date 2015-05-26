@@ -40,6 +40,9 @@ import sys
 def locate(pattern, root=os.curdir):
     '''Locate all files matching supplied filename pattern in and below
     supplied root directory.'''
+    
+    
+    
     for path, dirs, files in os.walk(os.path.abspath(root)):
         for filename in fnmatch.filter(files, pattern):
             yield os.path.join(path, filename)
@@ -114,6 +117,12 @@ if not os.path.exists(os.path.join(source,  'moodle_backup.xml')):
 destinationRoot      = os.path.join(sourceDir, '-Extracted/')
 createOutputDirectories(destinationRoot)
 
+# Copy HTML support files to extracted folder
+script_dir = os.path.dirname(os.path.realpath(__file__))
+shutil.copy(os.path.join(script_dir, "tachyons.css"),os.path.join(sourceDir, '-Extracted/'))
+
+
+
 pattern     = re.compile('^\s*(.+\.(?:pdf|png|zip|rtf|sav|mp3|mht|por|xlsx?|docx?|pptx?))\s*$', flags=re.IGNORECASE)
 
 # Get Course Info
@@ -140,6 +149,16 @@ print "Extracting backup of "+shortname+ " @ " + timeStamp + " to " + destinatio
 initializeLogfile("extract.log.txt")
 
 
+html_header = '''
+<head>
+	<title>Moodle Backup Extract</title>
+	<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+	<link rel="stylesheet" type="text/css" href="tachyons.css">
+</head>'''
+
+
+
+
 
 
 ##########################
@@ -150,7 +169,7 @@ webFileSpec = os.path.join(destinationRoot, webFilename)
 
 urlfile = open(webFileSpec,"w")
 if urlfile.mode == 'w':
-    urlfile.write("<html><title>Moodle Backup Extract</title><body><blockquote>")
+    urlfile.write("<html>%s<body><blockquote>" % html_header)
     urlfile.write("<h3>Moodle Backup Extract..."+timeStamp+"</h1>")
     urlfile.write("<h2>"+shortname+" ("+fullname+")</h2>")
     urlfile.write("<h1>Course Sections</h3>")
@@ -166,27 +185,98 @@ itemCount = 0
 
 for s in backupTreeRoot.findall("./information/contents/sections")[0].findall("section"):
 	
-	itemCount += 1	
 	section_title = s.find("title").text
+	print "\nNow processing section id: %s (%s)" % (s.find("sectionid").text, section_title)
 
-	HTMLOutput = "<h2>%s</h2><ul>" % section_title 
+	# If the section title is just a number that is the same value as the item count, prepend a string
+	if section_title == str(itemCount):
+		if itemCount == 0:
+			section_title = "Section Header"
+		else:
+			section_title = "Section %s" % section_title
+
+
+		
+
+
+	HTMLOutput = "<h2>%s</h2>" % section_title 
+
 
 	# Open section file
 	section_file_root = etree.parse(os.path.join(source, s.find("directory").text, "section.xml"))
+	section_summary = section_file_root.find("summary").text	
+	if section_summary:
+		HTMLOutput += "<p>%s</p>" % section_summary.encode("utf-8", errors='ignore')
+	HTMLOutput += "<ul>"
+	
+	
 	section_sequence = section_file_root.find("sequence").text.split(',')
 	
+
 	for item in section_sequence:
 		# Look for this item in the Moodle backup file
 		item_xpath = ".//*[moduleid='%s']" % item
-		item_title = activities.find(item_xpath).find("title").text
-		item_path = activities.find(item_xpath).find("directory").text
+		item_title = activities.find(item_xpath).find("title").text  # default
+		modulename = activities.find(item_xpath).find("modulename").text
+		
+		print "Found %s (item #: %s) titled %s" % (modulename, item, item_title)
+		
+		if modulename == "resource":
+			# Get link to file
+			resourceTree = etree.parse(os.path.join(source, 'activities', 'resource_%s' % item,  'inforef.xml'))
+			file_listing = resourceTree.findall("fileref/file")		
+			files = etree.parse(os.path.join(source,'files.xml')) # Look in files area to get name of file
+		
+			for f in file_listing:
+				file_id = f.find("id").text
+	
+				filename = files.find("file[@id='%s']/filename" % file_id).text
+				
+				if filename != "." and filename != "":
+	
+					# Copy the file to a folder for this section
+					section_file_dir = os.path.join(destinationRoot, "section_%03d" % itemCount)
+					if not os.path.exists(section_file_dir):
+						os.makedirs(section_file_dir)
+					filename = filename.encode("utf-8","ignore")	
+					contenthash = files.find("file[@id='%s']/contenthash" % file_id).text
+			
+					destination = os.path.join(section_file_dir, filename)
+					file = os.path.join(source, "files", contenthash[:2], contenthash)
+			
+					#print "  File resource id %s (%s).  Copy from %s to %s" % (file_id, filename, file, destination)
+			
+					shutil.copyfile(file, destination)
+			
+					item_title = "<a href='./resource/%s'>%s</a>" % (filename, item_title)
+			
+    			
+	
+		elif modulename == "url":
+			# Get url link
+			urlTree = etree.parse(os.path.join(source, 'activities', 'url_%s' % item,  'url.xml'))
+			url = urlTree.find("url/externalurl").text
+			print "Url id %s" % file_id
+		
+			item_title = "<a href='%s' target='_blank'>%s</a>" % (url, item_title)
+		
+		
+		else:
+			item_title += " (%s)" % modulename
+		
+
+
+
+		#item_path = activities.find(item_xpath).find("directory").text
 		HTMLOutput += "<li>%s</li>" % item_title
+
 	
 	logOutput = section_title + nl 
 	HTMLOutput += "</ul>"
 
 	urlfile.write(HTMLOutput)
 	logfile.write(logOutput)
+	itemCount += 1
 
 if itemCount == 0:
     urlfile.write("<p>No sections found!</p>")
