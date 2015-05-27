@@ -200,8 +200,7 @@ urlfile = open(webFileSpec,"w")
 if urlfile.mode == 'w':
     urlfile.write("<html>%s<body><blockquote>" % html_header)
     urlfile.write("<h3>Moodle Backup Extract..."+timeStamp+"</h3>")
-    urlfile.write("<h2>"+shortname+" ("+fullname+")</h2>")
-    urlfile.write("<h1>Course Sections</h1>")
+    urlfile.write("<h2 class='man'>%s</h2><h4 class='man'>%s</h4>" % (fullname, shortname))
     logfile.write("\n============\nCourse Sections\n=============\n")
     print ("Course Sections: {0}".format(webFileSpec))
 else:
@@ -227,7 +226,7 @@ for s in backupTreeRoot.findall("./information/contents/sections")[0].findall("s
 		
 
 
-	HTMLOutput = "<h2>%s</h2>" % section_title 
+	HTMLOutput = "<h2 class='mbn'>%s</h2>" % section_title 
 
 
 	# Open section file
@@ -235,7 +234,7 @@ for s in backupTreeRoot.findall("./information/contents/sections")[0].findall("s
 	section_summary = section_file_root.find("summary").text	
 	if section_summary:
 		HTMLOutput += "<p>%s</p>" % section_summary.encode("utf-8", errors='ignore')
-	HTMLOutput += "<ul>"
+	HTMLOutput += "<ul class='man'>"
 	
 	
 	section_sequence = section_file_root.find("sequence").text.split(',')
