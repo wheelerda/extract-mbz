@@ -194,7 +194,7 @@ html_header = '''
 
 ##########################
 # Process each section
-webFilename = "coursesections.html"
+webFilename = "%s.html" % slugify(shortname)
 webFileSpec = os.path.join(destinationRoot, webFilename)
 
 
@@ -422,7 +422,7 @@ for rsrc in root:
         
         if fcontext == "user":
             destination = os.path.join(destinationRoot, "user")
-        elif fcontext == "mod_resource":
+        elif fcontext == "mod_resource" or fcontext == "mod_folder":
             destination = os.path.join(destinationRoot, "resource")
         elif fcontext == "legacy":
             destination = os.path.join(destinationRoot, "legacy")
@@ -450,60 +450,6 @@ print ("Extracted files = {0}".format(itemCount))
 logfile.write ("\nExtracted files = {0}\n".format(itemCount))
 
 
-
-# # #########################
-# Process Course Links (URLs)
-
-print "\nProcessing Course Links (URLs)...";  # status
-webFilename = "courselinks.html"
-webFileSpec = os.path.join(destinationRoot, webFilename)
-
-urlfile = open(webFileSpec,"w")
-if urlfile.mode == 'w':
-    urlfile.write("<html><title>Moodle Backup Extract</title><body><blockquote>")
-    urlfile.write("<h3>Moodle Backup Extract..."+timeStamp+"</h1>")
-    urlfile.write("<h2>"+shortname+" ("+fullname+")</h2>")
-    urlfile.write("<h1>Course Links</h3>")
-    urlfile.write("<ul>")
-    logfile.write("\n============\nCourse Links\n=============\n")
-    print ("Course Links: {0}".format(webFileSpec))
-else:
-    print ("Error: unable to open {0} for writing".format(webFileSpec))
-
-print "===\nProcessing course urls..."
-
-urlfiles = locate('url*', os.path.join(source, 'activities'))
-itemCount = 0
-
-for uf in urlfiles:
-    itemCount += 1
-    utree = etree.parse(uf)
-    root = utree.getroot()
-    for url in root:
-        title = url.find('name').text
-        titleText = title.encode("utf-8","ignore")
-        address = url.find('externalurl').text
-        addressText = address.encode("utf-8","ignore")
-        intro = url.find('intro').text
-        if intro:
-            introText = intro.encode("utf-8","ignore")
- #           introText = introText.encode("ascii","ignore")
-        else:
-            introText = "..."
-
-        logOutput = titleText + pipe + addressText + pipe + introText + pipe + nl 
-        # print("{0}|{1}|{2}|".format(titleText,addressText,introText))
-        
-        HTMLOutput = '<li> <a href="'+addressText+'">'+titleText+'</a>'+introText+'</li>' + nl
-
-        urlfile.write(HTMLOutput)
-        logfile.write(logOutput)
-
-if itemCount == 0:
-    urlfile.write("<p>No links found!</p>")
-    print("No course links found!")
-
-logfile.write ("Extracted links = {0}".format(itemCount))
 
 urlfile.close()
 logfile.close()
