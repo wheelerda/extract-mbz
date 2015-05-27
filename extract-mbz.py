@@ -34,6 +34,7 @@ import re
 import datetime
 import time
 import sys
+from slugify import slugify
 
 # Functions ###########################################################################
 # locate # # # #
@@ -76,6 +77,34 @@ def initializeLogfile(logfileName):
         print ("Extract Log File: {0}".format(logFileSpec))
     else:
         print ("Error: unable to open {0} for writing".format(logFileSpec))
+
+# Unique filename
+# From http://code.activestate.com/recipes/577200-make-unique-file-name/
+# By Denis Barmenkov <denis.barmenkov@gmail.com>
+def add_unique_postfix(fn):
+    if not os.path.exists(fn):
+        return fn
+
+    path, name = os.path.split(fn)
+    name, ext = os.path.splitext(name)
+
+    make_fn = lambda i: os.path.join(path, '%s(%d)%s' % (name, i, ext))
+
+    for i in xrange(2, sys.maxint):
+        uni_fn = make_fn(i)
+        if not os.path.exists(uni_fn):
+            return uni_fn
+
+    return None
+
+
+# Given a filename with extension, slugify the base part of the filename
+def make_slugified_filename(filename):
+	path, name = os.path.split(filename)
+	name, ext = os.path.splitext(filename)
+	return os.path.join(path, "%s%s" % (slugify(name), ext))
+
+
 
 # /Functions ###########################################################################
 
@@ -170,10 +199,9 @@ webFileSpec = os.path.join(destinationRoot, webFilename)
 urlfile = open(webFileSpec,"w")
 if urlfile.mode == 'w':
     urlfile.write("<html>%s<body><blockquote>" % html_header)
-    urlfile.write("<h3>Moodle Backup Extract..."+timeStamp+"</h1>")
+    urlfile.write("<h3>Moodle Backup Extract..."+timeStamp+"</h3>")
     urlfile.write("<h2>"+shortname+" ("+fullname+")</h2>")
-    urlfile.write("<h1>Course Sections</h3>")
-    urlfile.write("<ul>")
+    urlfile.write("<h1>Course Sections</h1>")
     logfile.write("\n============\nCourse Sections\n=============\n")
     print ("Course Sections: {0}".format(webFileSpec))
 else:
@@ -212,6 +240,10 @@ for s in backupTreeRoot.findall("./information/contents/sections")[0].findall("s
 	
 	section_sequence = section_file_root.find("sequence").text.split(',')
 	
+	# Folder path for section (if needed)
+	section_file_dir = os.path.join(destinationRoot, "section_%03d" % itemCount)
+
+
 
 	for item in section_sequence:
 		# Look for this item in the Moodle backup file
@@ -235,20 +267,20 @@ for s in backupTreeRoot.findall("./information/contents/sections")[0].findall("s
 				if filename != "." and filename != "":
 	
 					# Copy the file to a folder for this section
-					section_file_dir = os.path.join(destinationRoot, "section_%03d" % itemCount)
 					if not os.path.exists(section_file_dir):
 						os.makedirs(section_file_dir)
-					filename = filename.encode("utf-8","ignore")	
+					filename = make_slugified_filename(filename)
 					contenthash = files.find("file[@id='%s']/contenthash" % file_id).text
 			
-					destination = os.path.join(section_file_dir, filename)
+					destination = add_unique_postfix(os.path.join(section_file_dir, filename))
 					file = os.path.join(source, "files", contenthash[:2], contenthash)
 			
 					#print "  File resource id %s (%s).  Copy from %s to %s" % (file_id, filename, file, destination)
 			
 					shutil.copyfile(file, destination)
-			
-					item_title = "<a href='./resource/%s'>%s</a>" % (filename, item_title)
+					
+					file_url = "./section_%03d/%s" % (itemCount, filename)
+					item_title = "<a href='%s'>%s</a>" % (file_url, item_title)
 			
     			
 	
@@ -259,6 +291,72 @@ for s in backupTreeRoot.findall("./information/contents/sections")[0].findall("s
 			print "Url id %s" % file_id
 		
 			item_title = "<a href='%s' target='_blank'>%s</a>" % (url, item_title)
+		
+		elif modulename == "page":
+			page_title = activities.find(item_xpath).find("title").text  # default
+			page_xml_file = activities.find(item_xpath).find("directory").text
+			
+			# Open page file
+			page_tree = etree.parse(os.path.join(source, page_xml_file,  'page.xml'))
+			page_content = page_tree.find("page/content").text
+		
+			# Save page as a standalone HTML file
+			if not os.path.exists(section_file_dir):
+				os.makedirs(section_file_dir)
+			pageFilename = make_slugified_filename("%s.html" % page_title)
+			pageFilePath = os.path.join(section_file_dir, pageFilename)
+			pageFilePath = add_unique_postfix(pageFilePath)
+			
+			pagefile = open(pageFilePath,"w")
+			if pagefile.mode == 'w':
+				pagefile.write("<html>%s<body><blockquote>" % html_header)
+				pagefile.write("<h2>%s (%s)</h2>" % (fullname, shortname))
+				pagefile.write("<h1>%s</h1>" % page_title)			
+				pagefile.write(page_content.encode("utf-8", errors='ignore'))
+				pagefile.close()
+			
+			page_url = "./section_%03d/%s" % (itemCount, pageFilename)
+			item_title = "<a href='%s'>%s</a>" % (page_url, page_title)
+		
+		elif modulename == "folder":
+			# Get folder info
+			folder_title = activities.find(item_xpath).find("title").text  
+			folder_xml_file = activities.find(item_xpath).find("directory").text
+			
+			# Open folder info to get description
+			folder_tree = etree.parse(os.path.join(source, folder_xml_file,  'folder.xml'))
+			folder_desc = folder_tree.find("folder/intro").text
+			
+			# Open inforef file to get file list
+			resourceTree = etree.parse(os.path.join(source, folder_xml_file,  'inforef.xml'))
+			file_listing = resourceTree.findall("fileref/file")		
+			files = etree.parse(os.path.join(source,'files.xml')) # Look in files area to get name of file
+		
+			folder_html = "<div><ul>"
+			for f in file_listing:
+				file_id = f.find("id").text
+	
+				original_filename = files.find("file[@id='%s']/filename" % file_id).text
+				
+				if original_filename != "." and original_filename != "":
+	
+					# Copy the file to a folder for this section
+					if not os.path.exists(section_file_dir):
+						os.makedirs(section_file_dir)
+					filename = make_slugified_filename(original_filename)
+					contenthash = files.find("file[@id='%s']/contenthash" % file_id).text
+			
+					destination = add_unique_postfix(os.path.join(section_file_dir, filename))
+					file = os.path.join(source, "files", contenthash[:2], contenthash)
+			
+					shutil.copyfile(file, destination)
+					
+					file_url = "./section_%03d/%s" % (itemCount, filename)
+					folder_html += "<li><a href='%s'>%s</a></li>" % (file_url, original_filename)
+			
+			folder_html += "</ul></div>"
+			item_title = "%s Folder%s" % (folder_title, folder_html)
+				
 		
 		
 		else:
