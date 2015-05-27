@@ -57,13 +57,13 @@ def createOutputDirectories(destinationRoot):
         os.mkdir(destinationRoot)
 
     for subdir in ("user","assignment","resource","forum","legacy"):
-        if not os.path.exists(destinationRoot + subdir):
-            os.mkdir(destinationRoot + subdir)
+        if not os.path.exists(os.path.join(destinationRoot, subdir)):
+            os.mkdir(os.path.join(destinationRoot, subdir))
 
 # 
 # Initialize and add header to extract log file
 def initializeLogfile(logfileName):
-    logFileSpec = destinationRoot+logfileName
+    logFileSpec = os.path.join(destinationRoot,logfileName)
 
     global logfile
     logfile = open(logFileSpec,"w")
@@ -143,12 +143,7 @@ if not os.path.exists(os.path.join(source,  'moodle_backup.xml')):
     print "\nERROR: " + source + " does not appear to contain unzipped mbz contents (couldn't locate moodle_backup.xml)\n"
     sys.exit()
 
-destinationRoot      = os.path.join(sourceDir, '-Extracted/')
-createOutputDirectories(destinationRoot)
 
-# Copy HTML support files to extracted folder
-script_dir = os.path.dirname(os.path.realpath(__file__))
-shutil.copy(os.path.join(script_dir, "tachyons.css"),os.path.join(sourceDir, '-Extracted/'))
 
 
 
@@ -161,7 +156,14 @@ fullname = courseTree.getroot().find('fullname').text
 crn = courseTree.getroot().find('idnumber').text
 format = courseTree.getroot().find('format').text
 topics = courseTree.getroot().find('numsections').text
-#print shortname + pipe + "fullname"
+
+
+destinationRoot      = os.path.join(sourceDir, slugify(shortname))
+createOutputDirectories(destinationRoot)
+
+# Copy HTML support files to extracted folder
+script_dir = os.path.dirname(os.path.realpath(__file__))
+shutil.copy(os.path.join(script_dir, "tachyons.css"),destinationRoot)
 
 
 # Get Moodle backup file info
@@ -175,7 +177,7 @@ timeStampSeconds = datetime.datetime.fromtimestamp(ts).strftime('%Y%m%d-%H%M-%S'
 
 print "Extracting backup of "+shortname+ " @ " + timeStamp + " to " + destinationRoot +"\n"
 
-initializeLogfile("extract.log.txt")
+initializeLogfile("extract_log.txt")
 
 
 html_header = '''
@@ -354,7 +356,7 @@ for s in backupTreeRoot.findall("./information/contents/sections")[0].findall("s
 					folder_html += "<li><a href='%s'>%s</a></li>" % (file_url, original_filename)
 			
 			folder_html += "</ul></div>"
-			item_title = "%s Folder%s" % (folder_title, folder_html)
+			item_title = "%s (folder)%s" % (folder_title, folder_html)
 				
 		
 		
