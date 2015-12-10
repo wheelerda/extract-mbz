@@ -36,6 +36,10 @@ import time
 import sys
 from slugify import slugify
 
+# http://stackoverflow.com/questions/21129020/how-to-fix-unicodedecodeerror-ascii-codec-cant-decode-byte
+reload(sys)  
+sys.setdefaultencoding('utf8')
+
 # Functions ###########################################################################
 # locate # # # #
 def locate(pattern, root=os.curdir):
@@ -239,7 +243,10 @@ for s in backupTreeRoot.findall("./information/contents/sections")[0].findall("s
 	HTMLOutput += "<ul class='man'>"
 	
 	
-	section_sequence = section_file_root.find("sequence").text.split(',')
+	if section_file_root.find("sequence").text:
+		section_sequence = section_file_root.find("sequence").text.split(',')
+	else:
+		section_sequence = []
 	
 	# Folder path for section (if needed)
 	section_file_dir = os.path.join(destinationRoot, "section_%03d" % itemCount)
@@ -304,7 +311,12 @@ for s in backupTreeRoot.findall("./information/contents/sections")[0].findall("s
 			# Save page as a standalone HTML file
 			if not os.path.exists(section_file_dir):
 				os.makedirs(section_file_dir)
-			pageFilename = make_slugified_filename("%s.html" % page_title)
+				
+			# Replace any "/" characters with "-" characters to avoid confusion 
+			# with filepaths
+			page_title = page_title.replace("/","-");	
+				
+			pageFilename = make_slugified_filename("%s.html" % page_title)	
 			pageFilePath = os.path.join(section_file_dir, pageFilename)
 			pageFilePath = add_unique_postfix(pageFilePath)
 			
@@ -312,7 +324,7 @@ for s in backupTreeRoot.findall("./information/contents/sections")[0].findall("s
 			if pagefile.mode == 'w':
 				pagefile.write("<html>%s<body><blockquote>" % html_header)
 				pagefile.write("<h2>%s (%s)</h2>" % (fullname, shortname))
-				pagefile.write("<h1>%s</h1>" % page_title)			
+				pagefile.write("<h1>%s</h1>" % page_title.encode("utf-8", errors='ignore'))			
 				pagefile.write(page_content.encode("utf-8", errors='ignore'))
 				pagefile.close()
 			
@@ -362,16 +374,16 @@ for s in backupTreeRoot.findall("./information/contents/sections")[0].findall("s
 		
 		else:
 			item_title += " (%s)" % modulename
-		
-
-
+	
 
 		#item_path = activities.find(item_xpath).find("directory").text
-		HTMLOutput += "<li>%s</li>" % item_title
+		HTMLOutput += "<li>%s</li>" % item_title.encode("utf-8", errors='ignore')
 
 	
 	logOutput = section_title + nl 
 	HTMLOutput += "</ul>"
+	HTMLOutput = HTMLOutput.encode('utf-8', errors='ignore')
+
 
 	urlfile.write(HTMLOutput)
 	logfile.write(logOutput)
