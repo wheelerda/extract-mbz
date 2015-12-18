@@ -37,7 +37,7 @@ import sys
 from slugify import slugify
 
 # http://stackoverflow.com/questions/21129020/how-to-fix-unicodedecodeerror-ascii-codec-cant-decode-byte
-reload(sys)  
+reload(sys)
 sys.setdefaultencoding('utf8')
 
 # Functions ###########################################################################
@@ -45,9 +45,9 @@ sys.setdefaultencoding('utf8')
 def locate(pattern, root=os.curdir):
     '''Locate all files matching supplied filename pattern in and below
     supplied root directory.'''
-    
-    
-    
+
+
+
     for path, dirs, files in os.walk(os.path.abspath(root)):
         for filename in fnmatch.filter(files, pattern):
             yield os.path.join(path, filename)
@@ -64,7 +64,7 @@ def createOutputDirectories(destinationRoot):
         if not os.path.exists(os.path.join(destinationRoot, subdir)):
             os.mkdir(os.path.join(destinationRoot, subdir))
 
-# 
+#
 # Initialize and add header to extract log file
 def initializeLogfile(logfileName):
     logFileSpec = os.path.join(destinationRoot,logfileName)
@@ -124,12 +124,12 @@ conflicted = 0
 #print 'Argument List:', str(sys.argv)
 
 if nArgs < 2:
-    print "usage: extract <input directory> \nYou must include the name of the subfolder containing the unzipped mbz contents...\n" 
+    print "usage: extract <input directory> \nYou must include the name of the subfolder containing the unzipped mbz contents...\n"
     sys.exit()
 
 if sys.argv[1] == '?':
     print "help:"
-    print "\tusage: extract <input directory> \n\t\tYou must include the name of the subfolder containing the unzipped mbz contents..." 
+    print "\tusage: extract <input directory> \n\t\tYou must include the name of the subfolder containing the unzipped mbz contents..."
     print "\n\t (Create a subfolder in this folder and unzip the .mbz into this subfolder... details somewhere else...)"
     print "\n\tcurrent objects extracted: Files, URLs"
     print "\tcurrent file types extracted: pdf|png|zip|rtf|sav|mp3|mht|por|xlsx?|docx?|pptx?\n"
@@ -217,7 +217,7 @@ print "===\nProcessing course sections..."
 itemCount = 0
 
 for s in backupTreeRoot.findall("./information/contents/sections")[0].findall("section"):
-	
+
 	section_title = s.find("title").text
 	print "\nNow processing section id: %s (%s)" % (s.find("sectionid").text, section_title)
 
@@ -229,25 +229,25 @@ for s in backupTreeRoot.findall("./information/contents/sections")[0].findall("s
 			section_title = "Section %s" % section_title
 
 
-		
 
 
-	HTMLOutput = "<h2 class='mbn'>%s</h2>" % section_title 
+
+	HTMLOutput = "<h2 class='mbn'>%s</h2>" % section_title
 
 
 	# Open section file
 	section_file_root = etree.parse(os.path.join(source, s.find("directory").text, "section.xml"))
-	section_summary = section_file_root.find("summary").text	
+	section_summary = section_file_root.find("summary").text
 	if section_summary:
 		HTMLOutput += "<p>%s</p>" % section_summary.encode("utf-8", errors='ignore')
 	HTMLOutput += "<ul class='man'>"
-	
-	
+
+
 	if section_file_root.find("sequence").text:
 		section_sequence = section_file_root.find("sequence").text.split(',')
 	else:
 		section_sequence = []
-	
+
 	# Folder path for section (if needed)
 	section_file_dir = os.path.join(destinationRoot, "section_%03d" % itemCount)
 
@@ -258,129 +258,129 @@ for s in backupTreeRoot.findall("./information/contents/sections")[0].findall("s
 		item_xpath = ".//*[moduleid='%s']" % item
 		item_title = activities.find(item_xpath).find("title").text  # default
 		modulename = activities.find(item_xpath).find("modulename").text
-		
+
 		print "Found %s (item #: %s) titled %s" % (modulename, item, item_title)
-		
+
 		if modulename == "resource":
 			# Get link to file
 			resourceTree = etree.parse(os.path.join(source, 'activities', 'resource_%s' % item,  'inforef.xml'))
-			file_listing = resourceTree.findall("fileref/file")		
+			file_listing = resourceTree.findall("fileref/file")
 			files = etree.parse(os.path.join(source,'files.xml')) # Look in files area to get name of file
-		
+
 			for f in file_listing:
 				file_id = f.find("id").text
-	
+
 				filename = files.find("file[@id='%s']/filename" % file_id).text
-				
+
 				if filename != "." and filename != "":
-	
+
 					# Copy the file to a folder for this section
 					if not os.path.exists(section_file_dir):
 						os.makedirs(section_file_dir)
 					filename = make_slugified_filename(filename)
 					contenthash = files.find("file[@id='%s']/contenthash" % file_id).text
-			
+
 					destination = add_unique_postfix(os.path.join(section_file_dir, filename))
 					file = os.path.join(source, "files", contenthash[:2], contenthash)
-			
+
 					#print "  File resource id %s (%s).  Copy from %s to %s" % (file_id, filename, file, destination)
-			
+
 					shutil.copyfile(file, destination)
-					
+
 					file_url = "./section_%03d/%s" % (itemCount, filename)
 					item_title = "<a href='%s'>%s</a>" % (file_url, item_title)
-			
-    			
-	
+
+
+
 		elif modulename == "url":
 			# Get url link
 			urlTree = etree.parse(os.path.join(source, 'activities', 'url_%s' % item,  'url.xml'))
 			url = urlTree.find("url/externalurl").text
-			print "Url id %s" % file_id
-		
+			print "Url id %s" % url
+
 			item_title = "<a href='%s' target='_blank'>%s</a>" % (url, item_title)
-		
+
 		elif modulename == "page":
 			page_title = activities.find(item_xpath).find("title").text  # default
 			page_xml_file = activities.find(item_xpath).find("directory").text
-			
+
 			# Open page file
 			page_tree = etree.parse(os.path.join(source, page_xml_file,  'page.xml'))
 			page_content = page_tree.find("page/content").text
-		
+
 			# Save page as a standalone HTML file
 			if not os.path.exists(section_file_dir):
 				os.makedirs(section_file_dir)
-				
-			# Replace any "/" characters with "-" characters to avoid confusion 
+
+			# Replace any "/" characters with "-" characters to avoid confusion
 			# with filepaths
-			page_title = page_title.replace("/","-");	
-				
-			pageFilename = make_slugified_filename("%s.html" % page_title)	
+			page_title = page_title.replace("/","-");
+
+			pageFilename = make_slugified_filename("%s.html" % page_title)
 			pageFilePath = os.path.join(section_file_dir, pageFilename)
 			pageFilePath = add_unique_postfix(pageFilePath)
-			
+
 			pagefile = open(pageFilePath,"w")
 			if pagefile.mode == 'w':
 				pagefile.write("<html>%s<body><blockquote>" % html_header)
 				pagefile.write("<h2>%s (%s)</h2>" % (fullname, shortname))
-				pagefile.write("<h1>%s</h1>" % page_title.encode("utf-8", errors='ignore'))			
+				pagefile.write("<h1>%s</h1>" % page_title.encode("utf-8", errors='ignore'))
 				pagefile.write(page_content.encode("utf-8", errors='ignore'))
 				pagefile.close()
-			
+
 			page_url = "./section_%03d/%s" % (itemCount, pageFilename)
 			item_title = "<a href='%s'>%s</a>" % (page_url, page_title)
-		
+
 		elif modulename == "folder":
 			# Get folder info
-			folder_title = activities.find(item_xpath).find("title").text  
+			folder_title = activities.find(item_xpath).find("title").text
 			folder_xml_file = activities.find(item_xpath).find("directory").text
-			
+
 			# Open folder info to get description
 			folder_tree = etree.parse(os.path.join(source, folder_xml_file,  'folder.xml'))
 			folder_desc = folder_tree.find("folder/intro").text
-			
+
 			# Open inforef file to get file list
 			resourceTree = etree.parse(os.path.join(source, folder_xml_file,  'inforef.xml'))
-			file_listing = resourceTree.findall("fileref/file")		
+			file_listing = resourceTree.findall("fileref/file")
 			files = etree.parse(os.path.join(source,'files.xml')) # Look in files area to get name of file
-		
+
 			folder_html = "<div><ul>"
 			for f in file_listing:
 				file_id = f.find("id").text
-	
+
 				original_filename = files.find("file[@id='%s']/filename" % file_id).text
-				
+
 				if original_filename != "." and original_filename != "":
-	
+
 					# Copy the file to a folder for this section
 					if not os.path.exists(section_file_dir):
 						os.makedirs(section_file_dir)
 					filename = make_slugified_filename(original_filename)
 					contenthash = files.find("file[@id='%s']/contenthash" % file_id).text
-			
+
 					destination = add_unique_postfix(os.path.join(section_file_dir, filename))
 					file = os.path.join(source, "files", contenthash[:2], contenthash)
-			
+
 					shutil.copyfile(file, destination)
-					
+
 					file_url = "./section_%03d/%s" % (itemCount, filename)
 					folder_html += "<li><a href='%s'>%s</a></li>" % (file_url, original_filename)
-			
+
 			folder_html += "</ul></div>"
 			item_title = "%s (folder)%s" % (folder_title, folder_html)
-				
-		
-		
+
+
+
 		else:
 			item_title += " (%s)" % modulename
-	
+
 
 		#item_path = activities.find(item_xpath).find("directory").text
 		HTMLOutput += "<li>%s</li>" % item_title.encode("utf-8", errors='ignore')
 
-	
-	logOutput = section_title + nl 
+
+	logOutput = section_title + nl
 	HTMLOutput += "</ul>"
 	HTMLOutput = HTMLOutput.encode('utf-8', errors='ignore')
 
@@ -431,7 +431,7 @@ for rsrc in root:
         files = locate(fhash, source)
 		#print "\tFiles: ", files
         logfile.write("|FILES\n")
-        
+
         if fcontext == "user":
             destination = os.path.join(destinationRoot, "user")
         elif fcontext == "mod_resource" or fcontext == "mod_folder":
@@ -444,18 +444,18 @@ for rsrc in root:
             destination = os.path.join(destinationRoot, "forum")
         else:
             destination = destinationRoot
-                      
+
         for x in files:
             # print "Copying: ", x
             if os.path.exists(os.path.join(destination,fname)):
-                print " $$$$ File conflict!!!!! " + destination + fname 
+                print " $$$$ File conflict!!!!! " + destination + fname
                 conflicted += 1
                 shutil.copyfile(x, os.path.join(destination, fname + "-" + str(conflicted)))
             else:
                 shutil.copyfile(x, os.path.join(destination, fname))
-        else: 
+        else:
             logfile.write("NO FILES|\n")
-    
+
 # print "No Match: '", fname, "'"
 
 print ("Extracted files = {0}".format(itemCount))
