@@ -35,6 +35,7 @@ import datetime
 import time
 import sys
 from slugify import slugify
+import zipfile
 
 # http://stackoverflow.com/questions/21129020/how-to-fix-unicodedecodeerror-ascii-codec-cant-decode-byte
 reload(sys)
@@ -60,7 +61,7 @@ def createOutputDirectories(destinationRoot):
     else:
         os.mkdir(destinationRoot)
 
-    for subdir in ("user","assignment","resource","forum","legacy"):
+    for subdir in ("user","assignment","resource","forum","legacy", "course"):
         if not os.path.exists(os.path.join(destinationRoot, subdir)):
             os.mkdir(os.path.join(destinationRoot, subdir))
 
@@ -108,6 +109,27 @@ def make_slugified_filename(filename):
 	name, ext = os.path.splitext(filename)
 	return os.path.join(path, "%s%s" % (slugify(name), ext))
 
+# Unzip the mbz file and extract the contents
+def unzip_mbz_file(mbz_filepath):
+
+    # Make folder to contain contentes of unzipped mbz file
+    base_dir = os.path.dirname(mbz_filepath)
+    mbz_filename, extension = os.path.splitext(os.path.basename(mbz_filepath))
+    unzip_folder = mbz_filename
+    i = 1
+    while unzip_folder in os.listdir(base_dir):
+        unzip_folder = "%s_%d" % (mbz_filename, i)
+        i+=1
+
+    fullpath_to_unzip_dir = os.path.join(base_dir, unzip_folder)
+    if not os.path.exists(fullpath_to_unzip_dir):
+        os.mkdir(fullpath_to_unzip_dir)
+
+
+    with zipfile.ZipFile(mbz_filepath, 'r') as myzip:
+        myzip.extractall(fullpath_to_unzip_dir)
+        return fullpath_to_unzip_dir
+
 
 
 # /Functions ###########################################################################
@@ -124,20 +146,23 @@ conflicted = 0
 #print 'Argument List:', str(sys.argv)
 
 if nArgs < 2:
-    print "usage: extract <input directory> \nYou must include the name of the subfolder containing the unzipped mbz contents...\n"
+    print "usage: extract <path to Moodle backup mbz file> \n"
     sys.exit()
 
 if sys.argv[1] == '?':
     print "help:"
-    print "\tusage: extract <input directory> \n\t\tYou must include the name of the subfolder containing the unzipped mbz contents..."
-    print "\n\t (Create a subfolder in this folder and unzip the .mbz into this subfolder... details somewhere else...)"
+    print "\tusage: extract <path to Moodle backup mbz file>"
     print "\n\tcurrent objects extracted: Files, URLs"
-    print "\tcurrent file types extracted: pdf|png|zip|rtf|sav|mp3|mht|por|xlsx?|docx?|pptx?\n"
+    print "\tcurrent file types extracted: pdf|png|gif|zip|rtf|sav|mp3|mht|por|xlsx?|docx?|pptx?\n"
     sys.exit()
 
-sourceDir = str(sys.argv[1])
+mbz_filepath = str(sys.argv[1])
 
-source = sourceDir #'./'+sourceDir+'/'
+if not os.path.exists(mbz_filepath):
+    print "\nERROR: " + mbz_filepath + " does not appear to exist\n"
+    sys.exit()
+
+source = unzip_mbz_file(mbz_filepath)
 
 if not os.path.exists(os.path.join(source, 'course', 'course.xml')):
     print "\nERROR: " + source + " does not appear to contain unzipped mbz contents (couldn't locate course.xml)\n"
@@ -151,7 +176,7 @@ if not os.path.exists(os.path.join(source,  'moodle_backup.xml')):
 
 
 
-pattern     = re.compile('^\s*(.+\.(?:pdf|png|zip|rtf|sav|mp3|mht|por|xlsx?|docx?|pptx?))\s*$', flags=re.IGNORECASE)
+pattern     = re.compile('^\s*(.+\.(?:pdf|png|gif|zip|rtf|sav|mp3|mht|por|xlsx?|docx?|pptx?))\s*$', flags=re.IGNORECASE)
 
 # Get Course Info
 courseTree = etree.parse(os.path.join(source, 'course', 'course.xml'))
@@ -162,7 +187,7 @@ format = courseTree.getroot().find('format').text
 topics = courseTree.getroot().find('numsections').text
 
 
-destinationRoot      = os.path.join(sourceDir, slugify(shortname))
+destinationRoot      = os.path.join(source, slugify(shortname))
 createOutputDirectories(destinationRoot)
 
 # Copy HTML support files to extracted folder
@@ -229,9 +254,6 @@ for s in backupTreeRoot.findall("./information/contents/sections")[0].findall("s
 			section_title = "Section %s" % section_title
 
 
-
-
-
 	HTMLOutput = "<h2 class='mbn'>%s</h2>" % section_title
 
 
@@ -239,6 +261,7 @@ for s in backupTreeRoot.findall("./information/contents/sections")[0].findall("s
 	section_file_root = etree.parse(os.path.join(source, s.find("directory").text, "section.xml"))
 	section_summary = section_file_root.find("summary").text
 	if section_summary:
+		section_summary = section_summary.replace("@@PLUGINFILE@@", "./course")
 		HTMLOutput += "<p>%s</p>" % section_summary.encode("utf-8", errors='ignore')
 	HTMLOutput += "<ul class='man'>"
 
@@ -422,7 +445,7 @@ for rsrc in root:
 	#print "\tName: '", fname, "'"
         #print "\tComponent: '", fcontext, "'"
     fname = fname.encode("utf-8","ignore")
-    logfile.write ( "{0}|{1}|{2}|".format(fname, fhash, fcontext))
+    logfile.write ( "{0} -- {1} -- {2}\n".format(fname, fhash, fcontext))
     hit = pattern.search(fname)
 
     if hit:
@@ -442,6 +465,8 @@ for rsrc in root:
             destination = os.path.join(destinationRoot, "assignment")
         elif fcontext == "mod_forum":
             destination = os.path.join(destinationRoot, "forum")
+        elif fcontext == "course":
+                destination = os.path.join(destinationRoot, "course")
         else:
             destination = destinationRoot
 
@@ -478,6 +503,6 @@ if sys.platform.startswith('linux') or sys.platform.startswith('darwin'):
         os.symlink(destinationRoot, symLink)
 
 # clean up (remove) subdirectories not used
-for subdir in ("forum", "legacy", "assignment", "user", "resource"):
+for subdir in ("forum", "legacy", "assignment", "user", "resource", "course"):
     if not os.listdir(os.path.join(destinationRoot, subdir)):
         os.rmdir(os.path.join(destinationRoot, subdir))
