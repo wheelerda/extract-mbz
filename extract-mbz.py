@@ -65,7 +65,7 @@ def createOutputDirectories(destinationRoot):
         if not os.path.exists(os.path.join(destinationRoot, subdir)):
             os.mkdir(os.path.join(destinationRoot, subdir))
 
-#
+
 # Initialize and add header to extract log file
 def initializeLogfile(logfileName):
     logFileSpec = os.path.join(destinationRoot,logfileName)
@@ -176,7 +176,7 @@ if not os.path.exists(os.path.join(source,  'moodle_backup.xml')):
 
 
 
-pattern     = re.compile('^\s*(.+\.(?:pdf|png|gif|zip|rtf|sav|mp3|mht|por|xlsx?|docx?|pptx?))\s*$', flags=re.IGNORECASE)
+pattern     = re.compile('^\s*(.+\.(?:pdf|png|gif|jpg|jpeg|zip|rtf|sav|mp3|mht|por|xlsx?|docx?|pptx?))\s*$', flags=re.IGNORECASE)
 
 # Get Course Info
 courseTree = etree.parse(os.path.join(source, 'course', 'course.xml'))
@@ -466,7 +466,7 @@ for rsrc in root:
         elif fcontext == "mod_forum":
             destination = os.path.join(destinationRoot, "forum")
         elif fcontext == "course":
-                destination = os.path.join(destinationRoot, "course")
+            destination = os.path.join(destinationRoot, "course")
         else:
             destination = destinationRoot
 
