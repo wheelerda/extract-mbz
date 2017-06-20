@@ -9,6 +9,9 @@ Working on a request from a professor I was surprised to find that there wasn't 
 And lest I seem too dismissive, I owe my efforts to Jon Reades and his proof of concept python script. Thanks!
 
 Status:
+This will not work with Moodle backup files created since v2.9; the course backup file format has changed from .zip to .tar.gz 
+I have a working version for .tar.gz under final development. 
+
 I have really been simply hacking at this, learning intermediate Python as I go, extracting "targets of opportunity" from the backup archive as they seem useful and easy. Right now this is still a command line script which needs a lot of work, but it does grab most of the files in a Moodle course and all the URLs. The files are simply dumped into appropriate folders with their original names (or simple conflict resolution of their name). The URLs are collected into an HTML file. A log file is generated with more information. 
 
 There are many more useful items for retrieval (student roster, grades, ...) and more improvements to be made. See details below. 
