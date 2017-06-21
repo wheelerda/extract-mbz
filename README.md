@@ -22,21 +22,36 @@ I've tested it so far on:
     Windows 7 with Python.Org Python
 
 extracting Files and URLs.
-Requirements:
+
+## Requirements:
 Python 2.7 (and for the uninitiated, note that newer is not better - Python 3 does not run a v2.7 program!) 
 
     Installed with most Mac OS X versions
 
     Available for download for Windows from Python.Org
+    
+You will also need two python libraries: slugify and python-magic (find installation instructions here https://github.com/ahupp/python-magic)
 
-Usage:
+## Usage:
 
-    Create a directory (folder) for your archive
-    Unzip your Moodle .mbz file into that directory (note that these archives are "flat" - if you extract them in a directory the contents will be in that directory with everything else; you may be used to archives which include a subdirectory into which the contents are unzipped)
-    Command line - <path-to-python-program-if-needed>python extract-mbz.py <your-mbs-directory> 
-        Command line help - use a question mark as the parameter - <path-to-python-program-if-needed>python extract-mbz.py ?  
+    Create a directory (folder) for your archive and place your .mbz file in it.
+    If you choose to relocate the python program files from your downloads folder to a new location, 
+    make sure the tachyons.css file is stil in the same directory as your copy of the extract-mbz.py file.
+    Unzipping your Moodle .mbz file prior to running the script is no longer necessary.  You can run the 
+    script straight on the .mbz file with no changes.
+    
+    Command line - <path-to-python-program-if-needed>python extract-mbz.py <full-path-to-your-mbs-directory>
+    
+    If successful, you will see a new folder created in the directory where your archive is, with the same title 
+    as the original .mbz file.
+    Within this new folder, look for the subfolder titled <shortname-of-your-course>. This subfolder contains all 
+    the documents from the course, along with a html document containing the all the links and text from that course.
+    If you're sharing the course contents with someone else and don't want to include the extraneous xml files, you can 
+    send just this <shortname-of-your-course> subfolder without missing any files or breaking the links in the html document.
+        
+    For Command line help - use a question mark as the parameter - <path-to-python-program-if-needed>python extract-mbz.py ?  
 
-Technical Background:
+## Technical Background:
 As already stated, I've been hacking at this so far, and not using detailed specifications to develop this tool. The proof of concept showed me how to get files and I figured out how to get URLs by looking at the .xml files. This probably won't work for more complex data structures such as grades so we'll need to understand the details of the Moodle Backup process. 
 
 As expected, Moodle uses an xml format to create course backups. The xml files and related documents are compressed in a .zip format archive. One uses any unzip-compatible program to retrieve the contents. 
