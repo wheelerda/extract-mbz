@@ -299,8 +299,13 @@ for s in backupTreeRoot.findall("./information/contents/sections")[0].findall("s
 	for item in section_sequence:
 		# Look for this item in the Moodle backup file
 		item_xpath = ".//*[moduleid='%s']" % item
-		item_title = activities.find(item_xpath).find("title").text  # default
-		modulename = activities.find(item_xpath).find("modulename").text
+		
+		try:
+			item_title = activities.find(item_xpath).find("title").text  # default
+			modulename = activities.find(item_xpath).find("modulename").text
+		except:
+			continue
+	
 
 		print "Found %s (item #: %s) titled %s" % (modulename, item, item_title)
 
