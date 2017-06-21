@@ -31,13 +31,19 @@ You will also need two python libraries: slugify and python-magic (find installa
 Usage:
 
     Create a directory (folder) for your archive and place your .mbz file in it.
-    If you choose to relocate the python program files from your downloads folder to a new location, make sure the tachyons.css file is stil in the same directory as your copy of the extract-mbz.py file.
-    Unzipping your Moodle .mbz file prior to running the script is no longer necessary.  You can run the script straight on the .mbz file with no changes.
+    If you choose to relocate the python program files from your downloads folder to a new location, 
+    make sure the tachyons.css file is stil in the same directory as your copy of the extract-mbz.py file.
+    Unzipping your Moodle .mbz file prior to running the script is no longer necessary.  You can run the 
+    script straight on the .mbz file with no changes.
     
     Command line - <path-to-python-program-if-needed>python extract-mbz.py <full-path-to-your-mbs-directory>
     
-    If successful, you will see a new folder created in the directory where your archive is, with the same title as the original .mbz file.
-    Withink this new folder, look for the subfolder titled <shortname-of-your-course>. There should be a html document inside with the text and links from your course.
+    If successful, you will see a new folder created in the directory where your archive is, with the same title 
+    as the original .mbz file.
+    Within this new folder, look for the subfolder titled <shortname-of-your-course>. This subfolder contains all 
+    the documents from the course, along with a html document containing the all the links and text from that course.
+    If you're sharing the course contents with someone else and don't want to include the extraneous xml files, you can 
+    send just this <shortname-of-your-course> subfolder without missing any files or breaking the links in the html document.
         
     For Command line help - use a question mark as the parameter - <path-to-python-program-if-needed>python extract-mbz.py ?  
 
