@@ -35,7 +35,9 @@ import datetime
 import time
 import sys
 from slugify import slugify
+import magic
 import zipfile
+import tarfile
 
 # http://stackoverflow.com/questions/21129020/how-to-fix-unicodedecodeerror-ascii-codec-cant-decode-byte
 reload(sys)
@@ -107,7 +109,7 @@ def add_unique_postfix(fn):
 def make_slugified_filename(filename):
 	path, name = os.path.split(filename)
 	name, ext = os.path.splitext(filename)
-	return os.path.join(path, "%s%s" % (slugify(name), ext))
+	return os.path.join(path, "%s%s" % (slugify(unicode(name)), ext))
 
 # Unzip the mbz file and extract the contents
 def unzip_mbz_file(mbz_filepath):
@@ -125,10 +127,28 @@ def unzip_mbz_file(mbz_filepath):
     if not os.path.exists(fullpath_to_unzip_dir):
         os.mkdir(fullpath_to_unzip_dir)
 
+	# Older version of mbz files are zip files
+	# Newer versions are gzip tar files
+	# Figure out what file type we have an unzip appropriately
+	
+	fileinfo = magic.from_file(mbz_filepath)
 
-    with zipfile.ZipFile(mbz_filepath, 'r') as myzip:
-        myzip.extractall(fullpath_to_unzip_dir)
-        return fullpath_to_unzip_dir
+	if 'Zip archive data' in fileinfo:
+	    with zipfile.ZipFile(mbz_filepath, 'r') as myzip:
+			myzip.extractall(fullpath_to_unzip_dir)
+
+	elif 'gzip compressed data' in fileinfo:
+		tar = tarfile.open(mbz_filepath)
+		tar.extractall(path=fullpath_to_unzip_dir)
+		tar.close()
+		
+	else:
+		print "Can't figure out what type of archive file this is"
+		return -1
+	
+	return fullpath_to_unzip_dir
+
+
 
 
 
@@ -187,7 +207,7 @@ format = courseTree.getroot().find('format').text
 topics = courseTree.getroot().find('numsections').text
 
 
-destinationRoot      = os.path.join(source, slugify(shortname))
+destinationRoot      = os.path.join(unicode(source), slugify(unicode(shortname)))
 createOutputDirectories(destinationRoot)
 
 # Copy HTML support files to extracted folder
@@ -223,7 +243,7 @@ html_header = '''
 
 ##########################
 # Process each section
-webFilename = "%s.html" % slugify(shortname)
+webFilename = "%s.html" % slugify(unicode(shortname))
 webFileSpec = os.path.join(destinationRoot, webFilename)
 
 
@@ -300,7 +320,7 @@ for s in backupTreeRoot.findall("./information/contents/sections")[0].findall("s
 					# Copy the file to a folder for this section
 					if not os.path.exists(section_file_dir):
 						os.makedirs(section_file_dir)
-					filename = make_slugified_filename(filename)
+					filename = make_slugified_filename(unicode(filename))
 					contenthash = files.find("file[@id='%s']/contenthash" % file_id).text
 
 					destination = add_unique_postfix(os.path.join(section_file_dir, filename))
@@ -339,7 +359,7 @@ for s in backupTreeRoot.findall("./information/contents/sections")[0].findall("s
 			# with filepaths
 			page_title = page_title.replace("/","-");
 
-			pageFilename = make_slugified_filename("%s.html" % page_title)
+			pageFilename = make_slugified_filename("%s.html" % unicode(page_title))
 			pageFilePath = os.path.join(section_file_dir, pageFilename)
 			pageFilePath = add_unique_postfix(pageFilePath)
 
