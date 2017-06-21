@@ -19,7 +19,8 @@ I've tested it so far on:
     Windows 7 with Python.Org Python
 
 extracting Files and URLs.
-Requirements:
+
+##Requirements:
 Python 2.7 (and for the uninitiated, note that newer is not better - Python 3 does not run a v2.7 program!) 
 
     Installed with most Mac OS X versions
@@ -28,7 +29,7 @@ Python 2.7 (and for the uninitiated, note that newer is not better - Python 3 do
     
 You will also need two python libraries: slugify and python-magic (find installation instructions here https://github.com/ahupp/python-magic)
 
-Usage:
+##Usage:
 
     Create a directory (folder) for your archive and place your .mbz file in it.
     If you choose to relocate the python program files from your downloads folder to a new location, 
@@ -47,7 +48,7 @@ Usage:
         
     For Command line help - use a question mark as the parameter - <path-to-python-program-if-needed>python extract-mbz.py ?  
 
-Technical Background:
+##Technical Background:
 As already stated, I've been hacking at this so far, and not using detailed specifications to develop this tool. The proof of concept showed me how to get files and I figured out how to get URLs by looking at the .xml files. This probably won't work for more complex data structures such as grades so we'll need to understand the details of the Moodle Backup process. 
 
 As expected, Moodle uses an xml format to create course backups. The xml files and related documents are compressed in a .zip format archive. One uses any unzip-compatible program to retrieve the contents. 
