@@ -78,7 +78,6 @@ def initializeLogfile(logfileName):
         logfile.write("Moodle Extract\n")
         logfile.write("Course: "+ shortname + " (" + fullname + ")\n")
         logfile.write(" Format: " + format + "\n")
-        logfile.write(" Sections: " + topics + "\n")
         logfile.write("Extract started: " + timeStamp + "\n")
         logfile.write("------------------------\n")
         print ("Extract Log File: {0}".format(logFileSpec))
@@ -204,8 +203,6 @@ shortname = courseTree.getroot().find('shortname').text
 fullname = courseTree.getroot().find('fullname').text
 crn = courseTree.getroot().find('idnumber').text
 format = courseTree.getroot().find('format').text
-topics = courseTree.getroot().find('numsections').text
-
 
 destinationRoot      = os.path.join(unicode(source), slugify(unicode(shortname)))
 createOutputDirectories(destinationRoot)
